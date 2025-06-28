@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 // Mock job data
 const mockJobs = [
@@ -80,6 +80,10 @@ const Index = () => {
     }
   };
 
+  const handleJobBoardClick = () => {
+    setShowPostJob(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -89,7 +93,12 @@ const Index = () => {
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
               <span className="text-white font-bold text-sm">JB</span>
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">JobBoard</h1>
+            <h1 
+              className="text-xl font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={handleJobBoardClick}
+            >
+              JobBoard
+            </h1>
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -110,77 +119,153 @@ const Index = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left Sidebar - Job Listings */}
+          {/* Left Side - Changes based on showPostJob */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Software Engineer in United States
-                </h2>
-                <Badge variant="secondary">{mockJobs.length} results</Badge>
-              </div>
-              
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Date posted</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Experience level</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Salary</Badge>
-                <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Remote</Badge>
-              </div>
-            </div>
-
-            {/* Job Listings */}
-            <div className="space-y-3">
-              {mockJobs.map((job) => (
-                <Card 
-                  key={job.id} 
-                  className={`cursor-pointer transition-all hover:shadow-md ${selectedJob.id === job.id ? 'ring-2 ring-blue-500 shadow-md' : ''}`}
-                  onClick={() => setSelectedJob(job)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
-                        <p className="text-sm text-blue-600 mb-1">{job.company}</p>
+            {showPostJob ? (
+              /* Job Preview */
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-semibold">Job Preview</h2>
+                  <p className="text-sm text-gray-600">This is how your job posting will appear</p>
+                </CardHeader>
+                <CardContent>
+                  {jobDescription ? (
+                    <div className="space-y-4">
+                      <div className="p-4 border border-gray-200 rounded-lg bg-white">
+                        <h3 className="font-semibold text-gray-900 mb-2">New Job Posting</h3>
+                        <p className="text-sm text-gray-700 mb-2">Your Company</p>
                         <div className="flex items-center text-sm text-gray-600 mb-2">
                           <MapPin className="w-3 h-3 mr-1" />
-                          <span>{job.location} - {job.distance}</span>
+                          <span>Location - Just posted</span>
                         </div>
-                        <div className="flex items-center text-sm text-green-700 font-medium">
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          <span>{job.salary}</span>
-                        </div>
+                        <p className="text-sm text-gray-700 mt-3">{jobDescription}</p>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {job.type}
-                      </Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p>Start typing your job description to see the preview</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              /* Job Listings */
+              <>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Software Engineer in United States
+                    </h2>
+                    <Badge variant="secondary">{mockJobs.length} results</Badge>
+                  </div>
+                  
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Date posted</Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Experience level</Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Salary</Badge>
+                    <Badge variant="outline" className="cursor-pointer hover:bg-gray-50">Remote</Badge>
+                  </div>
+                </div>
+
+                {/* Job Listings */}
+                <div className="space-y-3">
+                  {mockJobs.map((job) => (
+                    <Card 
+                      key={job.id} 
+                      className={`cursor-pointer transition-all hover:shadow-md ${selectedJob.id === job.id ? 'ring-2 ring-blue-500 shadow-md' : ''}`}
+                      onClick={() => setSelectedJob(job)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
+                            <p className="text-sm text-blue-600 mb-1">{job.company}</p>
+                            <div className="flex items-center text-sm text-gray-600 mb-2">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              <span>{job.location} - {job.distance}</span>
+                            </div>
+                            <div className="flex items-center text-sm text-green-700 font-medium">
+                              <DollarSign className="w-3 h-3 mr-1" />
+                              <span>{job.salary}</span>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {job.type}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Right Panel - Job Details */}
+          {/* Right Side - Changes based on showPostJob */}
           <div className="lg:col-span-3">
             {showPostJob ? (
+              /* Post Job Form */
               <Card>
                 <CardHeader>
                   <h2 className="text-xl font-semibold">Post a New Job</h2>
+                  <p className="text-sm text-gray-600">Describe your job opening and we'll help you create a professional listing</p>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Job Description
                     </label>
-                    <textarea
+                    <Textarea
                       placeholder="Example: a waiter that works night shift from Monday - Wednesday, 5pm - 10pm"
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
-                      className="w-full h-32 p-3 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="h-32 resize-none"
                     />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Describe the role, schedule, requirements, and any other important details
+                    </p>
                   </div>
-                  <div className="flex justify-end space-x-3">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Company Name
+                      </label>
+                      <Input placeholder="Your Company" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Job Title
+                      </label>
+                      <Input placeholder="e.g. Waiter/Waitress" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Location
+                      </label>
+                      <Input placeholder="City, State" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Salary Range
+                      </label>
+                      <Input placeholder="e.g. $16/hour + tips" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Information
+                    </label>
+                    <Input placeholder="Your name and title" />
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 pt-4">
                     <Button variant="outline" onClick={() => setShowPostJob(false)}>
                       Cancel
                     </Button>
@@ -191,6 +276,7 @@ const Index = () => {
                 </CardContent>
               </Card>
             ) : (
+              /* Job Details */
               <div className="space-y-6">
                 {/* Job Header */}
                 <Card>
