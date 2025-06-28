@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -323,8 +324,10 @@ const Index = () => {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <p className="text-gray-700">{selectedJob.contact}</p>
-                      <Button variant="outline" size="sm">
-                        Contact
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/chat">
+                          Contact
+                        </Link>
                       </Button>
                     </div>
                   </CardContent>
