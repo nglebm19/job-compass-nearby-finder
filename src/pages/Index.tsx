@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -90,18 +91,18 @@ const Index = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">JB</span>
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                <span className="text-white font-bold text-sm">JB</span>
+              </div>
+              <h1 
+                className="text-xl font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={handleJobBoardClick}
+              >
+                JobBoard
+              </h1>
             </div>
-            <h1 
-              className="text-xl font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
-              onClick={handleJobBoardClick}
-            >
-              JobBoard
-            </h1>
-          </div>
-          <div className="flex items-center space-x-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -111,8 +112,15 @@ const Index = () => {
                 className="pl-10 w-80"
               />
             </div>
+          </div>
+          <div className="flex items-center space-x-4">
             <Button onClick={() => setShowPostJob(!showPostJob)} className="bg-blue-600 hover:bg-blue-700">
               Post a Job
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/auth">
+                Login/Signup
+              </Link>
             </Button>
           </div>
         </div>
