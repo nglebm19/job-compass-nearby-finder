@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star } from 'lucide-react';
+import { Search, MapPin, DollarSign, Clock, Car, Bus, Building2, Users, Star, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,12 +71,81 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("Software Engineer");
   const [showPostJob, setShowPostJob] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [location, setLocation] = useState("");
+  const [salaryRange, setSalaryRange] = useState("");
+  const [contactInfo, setContactInfo] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSync = async () => {
+    if (!jobDescription.trim()) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // TODO: Replace this with IBM Granite 3.3 language model integration
+      // For now, using placeholder logic to demonstrate functionality
+      const segments = await parseJobDescription(jobDescription);
+      
+      setCompanyName(segments.companyName || "");
+      setJobTitle(segments.jobTitle || "");
+      setLocation(segments.location || "");
+      setSalaryRange(segments.salaryRange || "");
+      setContactInfo(segments.contactInfo || "");
+    } catch (error) {
+      console.error('Error parsing job description:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Placeholder function for job description parsing
+  // TODO: Replace with IBM Granite 3.3 model implementation
+  const parseJobDescription = async (description: string) => {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Basic pattern matching for demonstration
+    // This should be replaced with IBM Granite 3.3 model
+    const patterns = {
+      companyName: /(?:at|for|with) ([A-Z][a-zA-Z\s&]+?)(?:\s|,|\.)/i,
+      jobTitle: /(?:looking for|seeking|hiring) (?:a |an )?([a-zA-Z\s/]+?)(?:\s|,|\.)/i,
+      location: /(?:in|at|located) ([A-Z][a-zA-Z\s,]+?)(?:\s|,|\.)/i,
+      salaryRange: /(\$[\d,]+-?\$?[\d,]*(?:\/hour|\/year|\/hr)?)/i,
+      contactInfo: /(?:contact|reach out to) ([A-Z][a-zA-Z\s]+ - [A-Z][a-zA-Z\s]+)/i
+    };
+
+    const segments: any = {};
+    
+    Object.entries(patterns).forEach(([key, pattern]) => {
+      const match = description.match(pattern);
+      if (match) {
+        segments[key] = match[1].trim();
+      }
+    });
+
+    return segments;
+  };
 
   const handlePostJob = () => {
     if (jobDescription.trim()) {
-      // Parse the job description and create a formatted job posting
-      console.log("Posting job:", jobDescription);
+      console.log("Posting job:", {
+        description: jobDescription,
+        companyName,
+        jobTitle,
+        location,
+        salaryRange,
+        contactInfo
+      });
+      
+      // Reset form
       setJobDescription("");
+      setCompanyName("");
+      setJobTitle("");
+      setLocation("");
+      setSalaryRange("");
+      setContactInfo("");
       setShowPostJob(false);
     }
   };
@@ -134,20 +202,47 @@ const Index = () => {
               /* Job Preview */
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-semibold">Job Preview</h2>
-                  <p className="text-sm text-gray-600">This is how your job posting will appear</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">Job Preview</h2>
+                      <p className="text-sm text-gray-600">This is how your job posting will appear</p>
+                    </div>
+                    <Button 
+                      onClick={handleSync}
+                      disabled={!jobDescription.trim() || isLoading}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                      Sync
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  {jobDescription ? (
+                  {jobDescription || companyName || jobTitle ? (
                     <div className="space-y-4">
                       <div className="p-4 border border-gray-200 rounded-lg bg-white">
-                        <h3 className="font-semibold text-gray-900 mb-2">New Job Posting</h3>
-                        <p className="text-sm text-gray-700 mb-2">Your Company</p>
+                        <h3 className="font-semibold text-gray-900 mb-2">{jobTitle || "New Job Posting"}</h3>
+                        <p className="text-sm text-blue-600 mb-2">{companyName || "Your Company"}</p>
                         <div className="flex items-center text-sm text-gray-600 mb-2">
                           <MapPin className="w-3 h-3 mr-1" />
-                          <span>Location - Just posted</span>
+                          <span>{location || "Location"} - Just posted</span>
                         </div>
+                        {salaryRange && (
+                          <div className="flex items-center text-sm text-green-700 font-medium mb-2">
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            <span>{salaryRange}</span>
+                          </div>
+                        )}
                         <p className="text-sm text-gray-700 mt-3">{jobDescription}</p>
+                        {contactInfo && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-sm text-gray-600">
+                              <strong>Contact:</strong> {contactInfo}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -233,7 +328,7 @@ const Index = () => {
                       className="h-32 resize-none"
                     />
                     <p className="text-xs text-gray-500 mt-2">
-                      Describe the role, schedule, requirements, and any other important details
+                      Describe the role, schedule, requirements, and any other important details. Use the Sync button to auto-fill the fields below.
                     </p>
                   </div>
                   
@@ -242,13 +337,21 @@ const Index = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Company Name
                       </label>
-                      <Input placeholder="Your Company" />
+                      <Input 
+                        placeholder="Your Company" 
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Job Title
                       </label>
-                      <Input placeholder="e.g. Waiter/Waitress" />
+                      <Input 
+                        placeholder="e.g. Waiter/Waitress" 
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                      />
                     </div>
                   </div>
 
@@ -257,13 +360,21 @@ const Index = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Location
                       </label>
-                      <Input placeholder="City, State" />
+                      <Input 
+                        placeholder="City, State" 
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Salary Range
                       </label>
-                      <Input placeholder="e.g. $16/hour + tips" />
+                      <Input 
+                        placeholder="e.g. $16/hour + tips" 
+                        value={salaryRange}
+                        onChange={(e) => setSalaryRange(e.target.value)}
+                      />
                     </div>
                   </div>
 
@@ -271,7 +382,11 @@ const Index = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Contact Information
                     </label>
-                    <Input placeholder="Your name and title" />
+                    <Input 
+                      placeholder="Your name and title" 
+                      value={contactInfo}
+                      onChange={(e) => setContactInfo(e.target.value)}
+                    />
                   </div>
                   
                   <div className="flex justify-end space-x-3 pt-4">
