@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { graniteService, JobSegments } from '@/services/graniteService';
 
 // Mock job data
 const mockJobs = [
@@ -76,56 +77,33 @@ const Index = () => {
   const [location, setLocation] = useState("");
   const [salaryRange, setSalaryRange] = useState("");
   const [contactInfo, setContactInfo] = useState("");
+  const [workSchedule, setWorkSchedule] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSync = async () => {
     if (!jobDescription.trim()) return;
     
     setIsLoading(true);
+    console.log('Starting job description segmentation with IBM Granite 3.3...');
     
     try {
-      // TODO: Replace this with IBM Granite 3.3 language model integration
-      // For now, using placeholder logic to demonstrate functionality
-      const segments = await parseJobDescription(jobDescription);
+      const segments: JobSegments = await graniteService.segmentJobDescription(jobDescription);
       
+      console.log('Segmentation results:', segments);
+      
+      // Update form fields with segmented data
       setCompanyName(segments.companyName || "");
       setJobTitle(segments.jobTitle || "");
       setLocation(segments.location || "");
       setSalaryRange(segments.salaryRange || "");
       setContactInfo(segments.contactInfo || "");
+      setWorkSchedule(segments.workSchedule || "");
+      
     } catch (error) {
-      console.error('Error parsing job description:', error);
+      console.error('Error segmenting job description:', error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Placeholder function for job description parsing
-  // TODO: Replace with IBM Granite 3.3 model implementation
-  const parseJobDescription = async (description: string) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Basic pattern matching for demonstration
-    // This should be replaced with IBM Granite 3.3 model
-    const patterns = {
-      companyName: /(?:at|for|with) ([A-Z][a-zA-Z\s&]+?)(?:\s|,|\.)/i,
-      jobTitle: /(?:looking for|seeking|hiring) (?:a |an )?([a-zA-Z\s/]+?)(?:\s|,|\.)/i,
-      location: /(?:in|at|located) ([A-Z][a-zA-Z\s,]+?)(?:\s|,|\.)/i,
-      salaryRange: /(\$[\d,]+-?\$?[\d,]*(?:\/hour|\/year|\/hr)?)/i,
-      contactInfo: /(?:contact|reach out to) ([A-Z][a-zA-Z\s]+ - [A-Z][a-zA-Z\s]+)/i
-    };
-
-    const segments: any = {};
-    
-    Object.entries(patterns).forEach(([key, pattern]) => {
-      const match = description.match(pattern);
-      if (match) {
-        segments[key] = match[1].trim();
-      }
-    });
-
-    return segments;
   };
 
   const handlePostJob = () => {
@@ -136,7 +114,8 @@ const Index = () => {
         jobTitle,
         location,
         salaryRange,
-        contactInfo
+        contactInfo,
+        workSchedule
       });
       
       // Reset form
@@ -146,6 +125,7 @@ const Index = () => {
       setLocation("");
       setSalaryRange("");
       setContactInfo("");
+      setWorkSchedule("");
       setShowPostJob(false);
     }
   };
@@ -215,7 +195,7 @@ const Index = () => {
                       className="flex items-center gap-2"
                     >
                       <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                      Sync
+                      {isLoading ? 'Syncing...' : 'Sync'}
                     </Button>
                   </div>
                 </CardHeader>
@@ -233,6 +213,12 @@ const Index = () => {
                           <div className="flex items-center text-sm text-green-700 font-medium mb-2">
                             <DollarSign className="w-3 h-3 mr-1" />
                             <span>{salaryRange}</span>
+                          </div>
+                        )}
+                        {workSchedule && (
+                          <div className="flex items-center text-sm text-purple-700 font-medium mb-2">
+                            <Clock className="w-3 h-3 mr-1" />
+                            <span>{workSchedule}</span>
                           </div>
                         )}
                         <p className="text-sm text-gray-700 mt-3">{jobDescription}</p>
@@ -314,7 +300,7 @@ const Index = () => {
               <Card>
                 <CardHeader>
                   <h2 className="text-xl font-semibold">Post a New Job</h2>
-                  <p className="text-sm text-gray-600">Describe your job opening and we'll help you create a professional listing</p>
+                  <p className="text-sm text-gray-600">Describe your job opening and IBM Granite 3.3 will help you create a professional listing</p>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
@@ -322,13 +308,13 @@ const Index = () => {
                       Job Description
                     </label>
                     <Textarea
-                      placeholder="Example: a waiter that works night shift from Monday - Wednesday, 5pm - 10pm"
+                      placeholder="Example: a waiter that works night shift from Monday - Wednesday, 5pm - 10pm, at Thien Huong sandwiches San jose, CA salary: 16.5$"
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
                       className="h-32 resize-none"
                     />
                     <p className="text-xs text-gray-500 mt-2">
-                      Describe the role, schedule, requirements, and any other important details. Use the Sync button to auto-fill the fields below.
+                      Describe the role, schedule, requirements, and any other important details. Use the Sync button to auto-fill the fields below using IBM Granite 3.3 AI.
                     </p>
                   </div>
                   
@@ -378,15 +364,27 @@ const Index = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Information
-                    </label>
-                    <Input 
-                      placeholder="Your name and title" 
-                      value={contactInfo}
-                      onChange={(e) => setContactInfo(e.target.value)}
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Work Schedule
+                      </label>
+                      <Input 
+                        placeholder="e.g. Monday-Wednesday 5pm-10pm" 
+                        value={workSchedule}
+                        onChange={(e) => setWorkSchedule(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contact Information
+                      </label>
+                      <Input 
+                        placeholder="Your name and title" 
+                        value={contactInfo}
+                        onChange={(e) => setContactInfo(e.target.value)}
+                      />
+                    </div>
                   </div>
                   
                   <div className="flex justify-end space-x-3 pt-4">
