@@ -55,38 +55,45 @@ export class GraniteJobSegmentationService {
       return this.parseSegmentedResponse(generatedText);
     } catch (error) {
       console.error('Error calling IBM Granite 3.3 model:', error);
-      // Fallback to pattern matching for demo purposes
+      // Fallback to enhanced pattern matching for demo purposes
       return this.fallbackPatternMatching(description);
     }
   }
 
   private createSegmentationPrompt(description: string): string {
     return `
-You are a job description analyzer. Extract the following information from the job description and return it in JSON format:
+You are an expert job description analyzer. Your task is to extract specific information from job descriptions with high accuracy.
 
 Job Description: "${description}"
 
-Extract and return ONLY a JSON object with these fields:
-- jobTitle: The job position/role
-- companyName: The company or business name
-- location: The work location (city, state, address)
-- salaryRange: The salary, wage, or compensation
-- workSchedule: The work schedule, hours, or shift information
-- contactInfo: Any contact person or information
+Extract the following information and return ONLY a valid JSON object with these exact fields:
+- jobTitle: The job position/role (e.g., "Waiter", "Software Engineer")
+- companyName: The business/company name (e.g., "Thien Huong sandwiches")
+- location: The work location as city, state format (e.g., "San Jose, CA")
+- salaryRange: The salary/wage with currency and period (e.g., "$16-18 per hour", "$50,000/year")
+- workSchedule: The work days and hours (e.g., "Monday - Wednesday, 5pm - 10pm")
+- contactInfo: Any contact person mentioned (leave empty if none)
 
-Return only valid JSON without any additional text or formatting.
+Rules:
+1. Extract exact information from the text
+2. For location, use "City, State" format
+3. For salary, preserve the original format but ensure currency symbol is included
+4. For schedule, include both days and times if available
+5. If information is not available, use empty string ""
 
-Example output:
+Example:
+Input: "a job as a waiter at Thien Huong sandwiches, that works night shift from Monday - Wednesday, 5pm - 10pm, at in San Jose CA , salary $16-18 per hour"
+Output:
 {
-  "jobTitle": "waiter",
-  "companyName": "Thien Huong Sandwiches",
+  "jobTitle": "Waiter",
+  "companyName": "Thien Huong sandwiches",
   "location": "San Jose, CA",
-  "salaryRange": "$16.5/hour",
-  "workSchedule": "night shift Monday-Wednesday 5pm-10pm",
+  "salaryRange": "$16-18 per hour",
+  "workSchedule": "Monday - Wednesday, 5pm - 10pm",
   "contactInfo": ""
 }
 
-JSON:`;
+Return only the JSON object, no additional text:`;
   }
 
   private parseSegmentedResponse(response: string): JobSegments {
@@ -112,31 +119,108 @@ JSON:`;
   }
 
   private fallbackPatternMatching(description: string): JobSegments {
-    // Enhanced pattern matching as fallback
-    const patterns = {
-      jobTitle: /(?:as a|as an|job as|position as|work as|looking for|seeking|hiring)\s+(?:a\s+|an\s+)?([a-zA-Z\s/]+?)(?:\s+that|\s+who|\s+at|\s+in|\s+for|\s+with|,|\.)/i,
-      companyName: /(?:at|for|with)\s+([A-Z][a-zA-Z\s&\-']+?)(?:\s+in|\s+at|\s+located|\s+salary|\s+wage|,|\.)/i,
-      location: /(?:in|at|located)\s+([A-Z][a-zA-Z\s,]+?)(?:\s+salary|\s+wage|\s+pay|,|\.)/i,
-      salaryRange: /(?:salary|wage|pay|compensation):\s*(\$?[\d,]+\.?\d*(?:\$|\/hour|\/hr|\/year)?)/i,
-      workSchedule: /(?:shift|schedule|hours|time|work)\s+([a-zA-Z\s\-0-9:]+?)(?:\s+at|\s+in|\s+salary|,|\.)/i
-    };
-
     const segments: JobSegments = {};
     
-    Object.entries(patterns).forEach(([key, pattern]) => {
+    // Enhanced job title extraction
+    const jobTitlePatterns = [
+      /(?:job as|as a|as an|work as|position as|looking for|seeking|hiring)\s+(?:a\s+|an\s+)?([a-zA-Z\s/\-]+?)(?:\s+(?:at|that|who|in|for|with)|,|\.|$)/i,
+      /(?:^|\s)([a-zA-Z]+(?:\s+[a-zA-Z]+)*)\s+(?:job|position|role)(?:\s|$)/i
+    ];
+    
+    for (const pattern of jobTitlePatterns) {
       const match = description.match(pattern);
       if (match && match[1]) {
-        segments[key as keyof JobSegments] = match[1].trim();
+        segments.jobTitle = this.capitalizeWords(match[1].trim());
+        break;
       }
-    });
-
-    // Special handling for salary format
-    const salaryMatch = description.match(/(\$?[\d,]+\.?\d*)\s*(?:\$|\/hour|\/hr|per hour)?/i);
-    if (salaryMatch) {
-      segments.salaryRange = salaryMatch[1].includes('$') ? salaryMatch[1] : `$${salaryMatch[1]}`;
+    }
+    
+    // Enhanced company name extraction
+    const companyPatterns = [
+      /(?:at|for|with)\s+([A-Z][A-Za-z\s&\-'\.]+?)(?:\s*,|\s+(?:that|in|at|located|san|los|new|salary|wage|pay|\d))/i,
+      /(?:^|\s)([A-Z][A-Za-z\s&\-'\.]+?)\s+(?:restaurant|company|corp|inc|llc|store|shop|cafe|sandwiches)/i
+    ];
+    
+    for (const pattern of companyPatterns) {
+      const match = description.match(pattern);
+      if (match && match[1] && match[1].length > 2) {
+        segments.companyName = match[1].trim();
+        break;
+      }
+    }
+    
+    // Enhanced location extraction (City, State format)
+    const locationPatterns = [
+      /(?:in|at|located)\s+([A-Z][a-zA-Z\s]+),?\s+(CA|California|NY|New York|TX|Texas|FL|Florida|IL|Illinois|WA|Washington|OR|Oregon|NV|Nevada)/i,
+      /([A-Z][a-zA-Z\s]+),?\s+(CA|California|NY|New York|TX|Texas|FL|Florida|IL|Illinois|WA|Washington|OR|Oregon|NV|Nevada)(?:\s|,|$)/i
+    ];
+    
+    for (const pattern of locationPatterns) {
+      const match = description.match(pattern);
+      if (match && match[1] && match[2]) {
+        const city = match[1].trim().replace(',', '');
+        const state = match[2] === 'California' ? 'CA' : match[2] === 'New York' ? 'NY' : match[2];
+        segments.location = `${city}, ${state}`;
+        break;
+      }
+    }
+    
+    // Enhanced salary extraction
+    const salaryPatterns = [
+      /salary[:\s]*(\$?\d+(?:[,\.]?\d+)*(?:\s*-\s*\$?\d+(?:[,\.]?\d+)*)?)\s*(?:per\s+hour|\/hour|\/hr|hourly|per hour)/i,
+      /(\$\d+(?:[,\.]?\d+)*(?:\s*-\s*\$?\d+(?:[,\.]?\d+)*)?)\s*(?:per\s+hour|\/hour|\/hr|hourly|per hour)/i,
+      /salary[:\s]*(\$?\d+(?:[,\.]?\d+)*(?:\s*-\s*\$?\d+(?:[,\.]?\d+)*)?)\s*(?:per\s+year|\/year|annually|yearly)/i,
+      /(\$\d+(?:[,\.]?\d+)*(?:\s*-\s*\$?\d+(?:[,\.]?\d+)*)?)\s*(?:per\s+year|\/year|annually|yearly)/i
+    ];
+    
+    for (const pattern of salaryPatterns) {
+      const match = description.match(pattern);
+      if (match && match[1]) {
+        let salary = match[1].trim();
+        if (!salary.startsWith('$')) {
+          salary = '$' + salary;
+        }
+        if (pattern.source.includes('hour')) {
+          segments.salaryRange = salary + ' per hour';
+        } else if (pattern.source.includes('year')) {
+          segments.salaryRange = salary + ' per year';
+        } else {
+          segments.salaryRange = salary;
+        }
+        break;
+      }
+    }
+    
+    // Enhanced work schedule extraction
+    const schedulePatterns = [
+      /((?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s*-\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))?)[,\s]*(\d{1,2}(?:am|pm)?\s*-\s*\d{1,2}(?:am|pm)?)/i,
+      /(?:shift|schedule|hours|work|time)\s+(?:from\s+)?((?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s*-\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))?)[,\s]*(\d{1,2}(?:am|pm)?\s*-\s*\d{1,2}(?:am|pm)?)/i,
+      /((?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s*-\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))?)[,\s]+(\d{1,2}(?:am|pm)?\s*-\s*\d{1,2}(?:am|pm)?)/i
+    ];
+    
+    for (const pattern of schedulePatterns) {
+      const match = description.match(pattern);
+      if (match && match[1] && match[2]) {
+        const days = this.capitalizeWords(match[1].trim());
+        const hours = match[2].trim();
+        segments.workSchedule = `${days}, ${hours}`;
+        break;
+      }
+    }
+    
+    // Set default contact info if none found
+    if (!segments.contactInfo) {
+      segments.contactInfo = '';
     }
 
+    console.log('Enhanced parsing results:', segments);
     return segments;
+  }
+  
+  private capitalizeWords(str: string): string {
+    return str.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
   }
 }
 
